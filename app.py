@@ -21,6 +21,42 @@ st.sidebar.info("""
 - Pendekatan Ramah Asrama / Non-Gadget (Unplugged)
 """)
 
+# DATABASE REKOMENDASI TOPIK BERDASARKAN CP INFORMATIKA FASE D (BSKAP 046/H/KR/2025)
+REKOMENDASI_TOPIK = {
+    "Berpikir Komputasional": [
+        "Penerapan BK untuk Pemecahan Masalah Sehari-hari Santri di Asrama",
+        "Pengenalan Konsep Himpunan Data Terstruktur dalam Kehidupan Sekolah",
+        "Pemanfaatan Lembar Kerja Pengolah Data untuk Penyelesaian Masalah Sederhana",
+        "Penyelesaian Persoalan Data Berstruktur Sederhana Volume Kecil",
+        "Penulisan Sekumpulan Instruksi Algoritma Menggunakan Pseudocode Sederhana",
+        "Lainnya (Ketik Manual)"
+    ],
+    "Literasi Digital": [
+        "Cara Kerja dan Penggunaan Mesin Pencari (Search Engine) Secara Efektif",
+        "Evaluasi Kualitas Informasi, Kredibilitas Sumber, dan Membedakan Fakta vs Hoaks",
+        "Pengenalan Ekosistem Media Pers Digital dan Etika Berkomunikasi",
+        "Pemanfaatan Aplikasi Pengolah Dokumen, Lembar Kerja, dan Presentasi",
+        "Komponen, Fungsi, dan Cara Kerja Utama Komputer",
+        "Konsep Konektivitas Jaringan Lokal dan Internet (Kabel & Nirkabel)",
+        "Pemanfaatan Perangkat Digital untuk Produksi dan Diseminasi Konten Positif",
+        "Rekam Jejak Digital, Kesadaran Penuh (Mindfulness), dan Toleransi di Dunia Digital",
+        "Keamanan Digital: Kata Sandi Aman, Proteksi Data Pribadi, dan Pencegahan Malware",
+        "Lainnya (Ketik Manual)"
+    ],
+    "Analisis Data": [
+        "Pengumpulan dan Penataan Data Kegiatan Santri Secara Terstruktur",
+        "Pemrosesan dan Visualisasi Data Sederhana Menggunakan Lembar Kerja",
+        "Analisis Data Hasil Pengamatan Lingkungan Sekolah/Asrama",
+        "Lainnya (Ketik Manual)"
+    ],
+    "Algoritma dan Pemrograman": [
+        "Perancangan Langkah Logis (Algoritma) Aktivitas Harian",
+        "Penerapan Struktur Kontrol dan Percabangan Logika Sederhana",
+        "Penerapan Pseudocode dan Flowchart untuk Logika Program Unplugged",
+        "Lainnya (Ketik Manual)"
+    ]
+}
+
 # Form Input Data Modul
 st.header("📝 Form Isian Modul Ajar")
 
@@ -29,13 +65,21 @@ col1, col2 = st.columns(2)
 with col1:
     mapel = st.selectbox("Mata Pelajaran", ["Informatika", "IPA", "Matematika", "Bahasa Indonesia", "Pendidikan Pancasila"])
     kelas = st.selectbox("Kelas (Fase D)", ["Kelas 7", "Kelas 8", "Kelas 9"])
-    elemen_cp = st.selectbox("Elemen CP (Informatika)", [
-        "Berpikir Komputasional",
-        "Literasi Digital",
-        "Analisis Data",
-        "Algoritma dan Pemrograman"
-    ])
-    topik = st.text_input("Topik / Pokok Bahasan Materi", placeholder="Contoh: Algoritma & Urutan Langkah Piket Asrama")
+    
+    # Dropdown Elemen CP
+    elemen_cp = st.selectbox("Elemen CP (Informatika)", list(REKOMENDASI_TOPIK.keys()))
+    
+    # DROPDOWN REKOMENDASI TOPIK (Otomatis berubah sesuai Elemen yang dipilih)
+    pilihan_topik = st.selectbox(
+        "💡 Pilih Rekomendasi Topik/Materi (Sesuai CP Terbaru):",
+        REKOMENDASI_TOPIK[elemen_cp]
+    )
+    
+    # Jika memilih 'Lainnya (Ketik Manual)', munculkan input box
+    if pilihan_topik == "Lainnya (Ketik Manual)":
+        topik_final = st.text_input("Ketikkan Topik/Pokok Bahasan Custom:", placeholder="Contoh: Logika Pengurutan Sandal di Masjid")
+    else:
+        topik_final = pilihan_topik
 
 with col2:
     jumlah_pertemuan = st.number_input("Jumlah Pertemuan", min_value=1, max_value=5, value=2)
@@ -48,8 +92,8 @@ st.markdown("---")
 if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
     if not api_key:
         st.error("Silakan masukkan Gemini API Key Anda terlebih dahulu di menu sebelah kiri (Sidebar)!")
-    elif not topik:
-        st.warning("Silakan isi Topik / Pokok Bahasan Materi terlebih dahulu.")
+    elif not topik_final:
+        st.warning("Silakan pilih atau ketikkan Topik/Pokok Bahasan Materi terlebih dahulu.")
     else:
         try:
             # Inisialisasi Gemini API
@@ -68,7 +112,7 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
             - Mata Pelajaran: {mapel}
             - Jenjang / Fase: {kelas} (Fase D)
             - Elemen CP: {elemen_cp} (Berdasarkan BSKAP 046/H/KR/2025)
-            - Topik / Pokok Bahasan: {topik}
+            - Topik / Pokok Bahasan: {topik_final}
             - Jumlah Pertemuan: {jumlah_pertemuan} Pertemuan
             - Durasi per Pertemuan: {jp_per_pertemuan} JP ({total_menit} Menit)
             - Pendekatan: {pendekatan}
@@ -104,7 +148,7 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
                 st.download_button(
                     label="💾 Unduh Hasil Modul (.txt)",
                     data=response.text,
-                    file_name=f"Modul_Ajar_{mapel}_{kelas}_{topik}.txt",
+                    file_name=f"Modul_Ajar_{mapel}_{kelas}_{topik_final}.txt",
                     mime="text/plain"
                 )
 
