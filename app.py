@@ -98,7 +98,13 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
         try:
             # Inisialisasi Gemini API
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Percobaan pemilihan nama model otomatis yang kompatibel
+            model_name = "gemini-1.5-flash-latest"
+            try:
+                model = genai.GenerativeModel(model_name)
+            except:
+                model = genai.GenerativeModel("gemini-pro")
             
             total_menit = jp_per_pertemuan * 30
             
