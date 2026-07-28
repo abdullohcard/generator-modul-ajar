@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+import time
 
 # Config Halaman
 st.set_page_config(page_title="Generator Modul Ajar Deep Learning", page_icon="📚", layout="wide")
@@ -97,27 +98,6 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
         try:
             genai.configure(api_key=api_key)
             
-            # FITUR OTOMATIS: Mencari model Gemini yang tersedia dan aktif di akun Anda
-            available_models = [
-                m.name for m in genai.list_models() 
-                if 'generateContent' in m.supported_generation_methods
-            ]
-            
-            # Prioritas pencarian model terbaik
-            selected_model_name = None
-            for priority in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-pro']:
-                for m_name in available_models:
-                    if priority in m_name:
-                        selected_model_name = m_name
-                        break
-                if selected_model_name:
-                    break
-            
-            if not selected_model_name and available_models:
-                selected_model_name = available_models[0]
-
-            model = genai.GenerativeModel(selected_model_name)
-            
             total_menit = jp_per_pertemuan * 30
             
             # Formulasi Prompt System
@@ -153,9 +133,32 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
             4. DRAF LEMBAR KERJA PESERTA DIDIK (LKPD) CETAK / PAPER-BASED.
             """
 
+            # DAFTAR PRIORITAS MODEL DENGAN SISTEM AUTO-FALLBACK
+            model_candidates = [
+                'gemini-1.5-flash',
+                'gemini-1.5-flash-8b',
+                'gemini-1.5-pro',
+                'gemini-2.0-flash',
+                'gemini-pro'
+            ]
+            
+            response = None
+            success = False
+            last_error = ""
+
             with st.spinner("AI sedang menyusun Modul Ajar Deep Learning... Mohon tunggu sebentar."):
-                response = model.generate_content(prompt)
-                
+                for model_name in model_candidates:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        response = model.generate_content(prompt)
+                        success = True
+                        break # Berhasil, keluar dari loop
+                    except Exception as e:
+                        last_error = str(e)
+                        time.sleep(1) # Tunggu sebentar sebelum mencoba model cadangan berikutnya
+                        continue
+
+            if success and response:
                 st.success("✨ Modul Ajar Berhasil Dibuat!")
                 st.markdown("---")
                 
@@ -169,6 +172,9 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
                     file_name=f"Modul_Ajar_{mapel}_{kelas}_{topik_final}.txt",
                     mime="text/plain"
                 )
+            else:
+                st.error("Layanan AI sedang sibuk/mencapai batas kuota gratis. Tunggu sekitar 30 detik lalu tekan tombol buat lagi.")
+                st.caption(f"Rincian Teknis: {last_error}")
 
         except Exception as e:
-            st.error(f"Terjadi kesalahan saat menghubungkan ke AI: {e}")
+            st.error(f"Terjadi kesalahan sistem: {e}")
