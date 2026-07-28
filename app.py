@@ -57,10 +57,9 @@ def generate_docx(title, content):
     bio.seek(0)
     return bio
 
-# SISTEM MULTI-KEY ROTATION (Membaca list key dari Secrets)
+# SISTEM BACA API KEY
 api_keys = []
 if "GEMINI_API_KEYS" in st.secrets:
-    # Mengambil list key yang dipisahkan koma
     api_keys = [k.strip() for k in st.secrets["GEMINI_API_KEYS"].split(",") if k.strip()]
 elif "GEMINI_API_KEY" in st.secrets:
     api_keys = [st.secrets["GEMINI_API_KEY"]]
@@ -68,7 +67,7 @@ elif "GEMINI_API_KEY" in st.secrets:
 # Sidebar
 st.sidebar.header("⚙️ Pengaturan Aplikasi")
 if api_keys:
-    st.sidebar.success(f"✅ Akses AI Aktif ({len(api_keys)} Kunci Cadangan Tersedia)")
+    st.sidebar.success("✅ Akses AI Otomatis Aktif!")
 else:
     manual_key = st.sidebar.text_input("Masukkan Gemini API Key (Manual):", type="password")
     if manual_key:
@@ -142,7 +141,7 @@ st.markdown("---")
 
 if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
     if not api_keys:
-        st.error("API Key belum dikonfigurasi.")
+        st.error("API Key belum terpasang.")
     elif not topik_final:
         st.warning("Pilih atau ketikkan Topik terlebih dahulu.")
     else:
@@ -175,19 +174,23 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
         4. DRAF LKPD CETAK / PAPER-BASED
         """
 
-        model_names = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro']
         success = False
         response_text = ""
         last_err = ""
 
         with st.spinner("AI sedang menyusun Modul Ajar..."):
-            # PERTAMA: Coba putar semua API Key yang tersedia
             for key in api_keys:
                 if success:
                     break
                 try:
                     genai.configure(api_key=key)
-                    for m_name in model_names:
+                    # DETEKSI MODEL SECARA OTOMATIS DARI GOOGLE API
+                    active_models = [
+                        m.name for m in genai.list_models() 
+                        if 'generateContent' in m.supported_generation_methods
+                    ]
+                    
+                    for m_name in active_models:
                         try:
                             model = genai.GenerativeModel(m_name)
                             res = model.generate_content(prompt)
@@ -226,5 +229,5 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
                     mime="text/plain"
                 )
         else:
-            st.error("Gagal menghubungkan ke AI. Silakan tunggu 10 detik lalu klik tombol lagi.")
+            st.error("Gagal menghubungkan ke AI. Silakan coba lagi dalam beberapa detik.")
             st.caption(f"Error detail: {last_err}")
