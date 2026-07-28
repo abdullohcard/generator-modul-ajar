@@ -69,13 +69,12 @@ with col1:
     # Dropdown Elemen CP
     elemen_cp = st.selectbox("Elemen CP (Informatika)", list(REKOMENDASI_TOPIK.keys()))
     
-    # DROPDOWN REKOMENDASI TOPIK (Otomatis berubah sesuai Elemen yang dipilih)
+    # DROPDOWN REKOMENDASI TOPIK
     pilihan_topik = st.selectbox(
         "💡 Pilih Rekomendasi Topik/Materi (Sesuai CP Terbaru):",
         REKOMENDASI_TOPIK[elemen_cp]
     )
     
-    # Jika memilih 'Lainnya (Ketik Manual)', munculkan input box
     if pilihan_topik == "Lainnya (Ketik Manual)":
         topik_final = st.text_input("Ketikkan Topik/Pokok Bahasan Custom:", placeholder="Contoh: Logika Pengurutan Sandal di Masjid")
     else:
@@ -96,15 +95,28 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
         st.warning("Silakan pilih atau ketikkan Topik/Pokok Bahasan Materi terlebih dahulu.")
     else:
         try:
-            # Inisialisasi Gemini API
             genai.configure(api_key=api_key)
             
-            # Percobaan pemilihan nama model otomatis yang kompatibel
-            model_name = "gemini-1.5-flash-latest"
-            try:
-                model = genai.GenerativeModel(model_name)
-            except:
-                model = genai.GenerativeModel("gemini-pro")
+            # FITUR OTOMATIS: Mencari model Gemini yang tersedia dan aktif di akun Anda
+            available_models = [
+                m.name for m in genai.list_models() 
+                if 'generateContent' in m.supported_generation_methods
+            ]
+            
+            # Prioritas pencarian model terbaik
+            selected_model_name = None
+            for priority in ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-pro']:
+                for m_name in available_models:
+                    if priority in m_name:
+                        selected_model_name = m_name
+                        break
+                if selected_model_name:
+                    break
+            
+            if not selected_model_name and available_models:
+                selected_model_name = available_models[0]
+
+            model = genai.GenerativeModel(selected_model_name)
             
             total_menit = jp_per_pertemuan * 30
             
