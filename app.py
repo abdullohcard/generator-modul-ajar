@@ -1,6 +1,10 @@
 import streamlit as st
 import google.generativeai as genai
 import time
+from docx import Document
+from docx.shared import Pt, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+import io
 
 # Config Halaman
 st.set_page_config(page_title="Generator Modul Ajar Deep Learning", page_icon="📚", layout="wide")
@@ -10,9 +14,86 @@ st.title("📚 Generator Modul Ajar Deep Learning")
 st.subheader("SMP Tri Sukses Boarding School Jambi (1 JP = 30 Menit)")
 st.caption("Berbasis CP Terbaru BSKAP 046/H/KR/2025 - Kurikulum Merdeka")
 
-# Sidebar untuk Pengaturan API Key
-st.sidebar.header("🔑 Pengaturan Akses AI")
-api_key = st.sidebar.text_input("Masukkan Google Gemini API Key Anda:", type="password")
+# FUNGSI UNTUK MERUBAH TEKS MENJADI FILE DOCX (WORD)
+def generate_docx(title, content):
+    doc = Document()
+    
+    # Setting Margin (Normal 1 inch)
+    sections = doc.sections
+    for section in sections:
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+        section.left_margin = Inches(1)
+        section.right_margin = Inches(1)
+        
+    # Judul Dokumen
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run_title = p_title.add_run(f"MODUL AJAR DEEP LEARNING\n{title.upper()}")
+    run_title.font.name = 'Arial'
+    run_title.font.size = Pt(14)
+    run_title.font.bold = True
+    
+    doc.add_paragraph().paragraph_format.space_after = Pt(12)
+    
+    # Mengolah Teks Baris demi Baris
+    lines = content.split('\n')
+    for line in lines:
+        line_strip = line.strip()
+        if not line_strip:
+            continue
+            
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(4)
+        p.paragraph_format.line_spacing = 1.15
+        
+        # Heading 1 / Judul Utama
+        if line_strip.startswith('# '):
+            run = p.add_run(line_strip[2:])
+            run.font.name = 'Arial'
+            run.font.size = Pt(12)
+            run.font.bold = True
+        # Heading 2 / Sub Judul
+        elif line_strip.startswith('## '):
+            run = p.add_run(line_strip[3:])
+            run.font.name = 'Arial'
+            run.font.size = Pt(11)
+            run.font.bold = True
+        # Heading 3
+        elif line_strip.startswith('### '):
+            run = p.add_run(line_strip[4:])
+            run.font.name = 'Arial'
+            run.font.size = Pt(10.5)
+            run.font.bold = True
+        # Poin / Bullet List
+        elif line_strip.startswith('* ') or line_strip.startswith('- '):
+            p.style = 'List Bullet'
+            run = p.add_run(line_strip[2:])
+            run.font.name = 'Arial'
+            run.font.size = Pt(10.5)
+        # Paragraf Biasa
+        else:
+            run = p.add_run(line_strip)
+            run.font.name = 'Arial'
+            run.font.size = Pt(10.5)
+
+    # Simpan ke memory buffer
+    bio = io.BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio
+
+# SISTEM API KEY OTOMATIS (Membaca dari Streamlit Secrets)
+api_key = ""
+if "GEMINI_API_KEY" in st.secrets:
+    api_key = st.secrets["GEMINI_API_KEY"]
+
+# Sidebar
+st.sidebar.header("⚙️ Pengaturan Aplikasi")
+if api_key:
+    st.sidebar.success("✅ Akses AI Otomatis Aktif!")
+else:
+    api_key = st.sidebar.text_input("Masukkan Gemini API Key (Manual):", type="password")
 
 st.sidebar.markdown("---")
 st.sidebar.info("""
@@ -91,7 +172,7 @@ st.markdown("---")
 # Tombol Eksekusi
 if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
     if not api_key:
-        st.error("Silakan masukkan Gemini API Key Anda terlebih dahulu di menu sebelah kiri (Sidebar)!")
+        st.error("Sistem API Key belum terkonfigurasi. Silakan isi API Key di Settings Streamlit!")
     elif not topik_final:
         st.warning("Silakan pilih atau ketikkan Topik/Pokok Bahasan Materi terlebih dahulu.")
     else:
@@ -133,7 +214,7 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
             4. DRAF LEMBAR KERJA PESERTA DIDIK (LKPD) CETAK / PAPER-BASED.
             """
 
-            # DAFTAR PRIORITAS MODEL DENGAN SISTEM AUTO-FALLBACK
+            # DAFTAR PRIORITAS MODEL DENGAN AUTO-FALLBACK
             model_candidates = [
                 'gemini-1.5-flash',
                 'gemini-1.5-flash-8b',
@@ -152,29 +233,44 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
                         model = genai.GenerativeModel(model_name)
                         response = model.generate_content(prompt)
                         success = True
-                        break # Berhasil, keluar dari loop
+                        break
                     except Exception as e:
                         last_error = str(e)
-                        time.sleep(1) # Tunggu sebentar sebelum mencoba model cadangan berikutnya
+                        time.sleep(1)
                         continue
 
             if success and response:
                 st.success("✨ Modul Ajar Berhasil Dibuat!")
                 st.markdown("---")
                 
-                # Menampilkan Hasil Generator
+                # Menampilkan Teks Hasil
                 st.markdown(response.text)
+                st.markdown("---")
                 
-                # Fitur Download / Copy Text
-                st.download_button(
-                    label="💾 Unduh Hasil Modul (.txt)",
-                    data=response.text,
-                    file_name=f"Modul_Ajar_{mapel}_{kelas}_{topik_final}.txt",
-                    mime="text/plain"
-                )
+                # OPSI UNDUH: WORD (.DOCX) & TEKS (.TXT)
+                col_dl1, col_col_dl2 = st.columns(2)
+                
+                # Konversi Hasil AI ke File Word
+                docx_file = generate_docx(f"{mapel} - {topik_final}", response.text)
+                
+                with col_dl1:
+                    st.download_button(
+                        label="📄 Unduh File MS Word (.docx)",
+                        data=docx_file,
+                        file_name=f"Modul_Ajar_{mapel}_{kelas}_{topik_final}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        type="primary"
+                    )
+                
+                with col_col_dl2:
+                    st.download_button(
+                        label="💾 Unduh Teks (.txt)",
+                        data=response.text,
+                        file_name=f"Modul_Ajar_{mapel}_{kelas}_{topik_final}.txt",
+                        mime="text/plain"
+                    )
             else:
-                st.error("Layanan AI sedang sibuk/mencapai batas kuota gratis. Tunggu sekitar 30 detik lalu tekan tombol buat lagi.")
-                st.caption(f"Rincian Teknis: {last_error}")
+                st.error("Layanan AI sedang sibuk/mencapai batas kuota gratis. Tunggu sekitar 30 detik lalu coba lagi.")
 
         except Exception as e:
             st.error(f"Terjadi kesalahan sistem: {e}")
