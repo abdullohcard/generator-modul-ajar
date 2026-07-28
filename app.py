@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import time
+import re
 from docx import Document
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -12,16 +13,46 @@ st.title("📚 Generator Modul Ajar Deep Learning")
 st.subheader("SMP Tri Sukses Boarding School Jambi (1 JP = 30 Menit)")
 st.caption("Berbasis CP Terbaru BSKAP 046/H/KR/2025 - Kurikulum Merdeka")
 
-# FUNGSI EXPORT DOCX
+# FUNGSI PEMPROSES FORMAT TEKS KE WORD (PARSER MARKDOWN KE DOCX)
+def add_formatted_runs(paragraph, text, base_bold=False, font_size=10.5):
+    paragraph.paragraph_format.space_after = Pt(4)
+    paragraph.paragraph_format.line_spacing = 1.15
+    
+    # Memecah teks berdasarkan simbol ** (bold) dan * (italic)
+    tokens = re.split(r'(\*\*.*?\*\*|\*.*?\*)', text)
+    for token in tokens:
+        if not token:
+            continue
+        
+        is_bold = base_bold
+        is_italic = False
+        clean_text = token
+
+        if token.startswith('**') and token.endswith('**'):
+            is_bold = True
+            clean_text = token[2:-2]
+        elif token.startswith('*') and token.endswith('*'):
+            is_italic = True
+            clean_text = token[1:-1]
+
+        run = paragraph.add_run(clean_text)
+        run.font.name = 'Arial'
+        run.font.size = Pt(font_size)
+        run.font.bold = is_bold
+        run.font.italic = is_italic
+
+# FUNGSI EKSPOR KE FILE .DOCX (MICROSOFT WORD)
 def generate_docx(title, content):
     doc = Document()
-    sections = doc.sections
-    for section in sections:
+    
+    # Pengaturan Margin 1 inci
+    for section in doc.sections:
         section.top_margin = Inches(1)
         section.bottom_margin = Inches(1)
         section.left_margin = Inches(1)
         section.right_margin = Inches(1)
         
+    # Judul Utama Dokumen
     p_title = doc.add_paragraph()
     p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_title = p_title.add_run(f"MODUL AJAR DEEP LEARNING\n{title.upper()}")
@@ -31,27 +62,34 @@ def generate_docx(title, content):
     
     doc.add_paragraph().paragraph_format.space_after = Pt(12)
     
+    # Pengolahan Teks Baris demi Baris
     lines = content.split('\n')
     for line in lines:
         line_strip = line.strip()
-        if not line_strip:
+        if not line_strip or line_strip == '---':
             continue
-        p = doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(4)
-        p.paragraph_format.line_spacing = 1.15
-        
-        if line_strip.startswith('# '):
-            run = p.add_run(line_strip[2:])
-            run.font.bold = True
-        elif line_strip.startswith('## '):
-            run = p.add_run(line_strip[3:])
-            run.font.bold = True
-        elif line_strip.startswith('* ') or line_strip.startswith('- '):
-            p.style = 'List Bullet'
-            run = p.add_run(line_strip[2:])
-        else:
-            run = p.add_run(line_strip)
             
+        # Handling Header 1
+        if line_strip.startswith('# '):
+            p = doc.add_paragraph()
+            add_formatted_runs(p, line_strip[2:], base_bold=True, font_size=12)
+        # Handling Header 2
+        elif line_strip.startswith('## '):
+            p = doc.add_paragraph()
+            add_formatted_runs(p, line_strip[3:], base_bold=True, font_size=11)
+        # Handling Header 3
+        elif line_strip.startswith('### '):
+            p = doc.add_paragraph()
+            add_formatted_runs(p, line_strip[4:], base_bold=True, font_size=10.5)
+        # Handling Bullet Point
+        elif line_strip.startswith('* ') or line_strip.startswith('- '):
+            p = doc.add_paragraph(style='List Bullet')
+            add_formatted_runs(p, line_strip[2:], font_size=10.5)
+        # Paragraf Biasa
+        else:
+            p = doc.add_paragraph()
+            add_formatted_runs(p, line_strip, font_size=10.5)
+
     bio = io.BytesIO()
     doc.save(bio)
     bio.seek(0)
@@ -67,7 +105,7 @@ elif "GEMINI_API_KEY" in st.secrets:
 # Sidebar
 st.sidebar.header("⚙️ Pengaturan Aplikasi")
 if api_keys:
-    st.sidebar.success("✅ Akses AI Otomatis Aktif!")
+    st.sidebar.success(f"✅ Akses AI Aktif ({len(api_keys)} Kunci Cadangan Tersedia)")
 else:
     manual_key = st.sidebar.text_input("Masukkan Gemini API Key (Manual):", type="password")
     if manual_key:
@@ -141,7 +179,7 @@ st.markdown("---")
 
 if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
     if not api_keys:
-        st.error("API Key belum terpasang.")
+        st.error("API Key belum dikonfigurasi.")
     elif not topik_final:
         st.warning("Pilih atau ketikkan Topik terlebih dahulu.")
     else:
@@ -184,7 +222,6 @@ if st.button("🚀 Buat Modul Ajar Sekarang", type="primary"):
                     break
                 try:
                     genai.configure(api_key=key)
-                    # DETEKSI MODEL SECARA OTOMATIS DARI GOOGLE API
                     active_models = [
                         m.name for m in genai.list_models() 
                         if 'generateContent' in m.supported_generation_methods
