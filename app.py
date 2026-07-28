@@ -11,7 +11,7 @@ st.set_page_config(page_title="Generator Modul Ajar Deep Learning", page_icon="�
 
 st.title("📚 Generator Modul Ajar Deep Learning")
 st.subheader("SMP Tri Sukses Boarding School Kota Jambi (1 JP = 30 Menit)")
-st.caption("Berbasis CP Terbaru BSKAP 046/H/KR/2025 - Format Standar Deep Learning")
+st.caption("Berbasis CP Terbaru BSKAP 046/H/KR/2025 & Kepka BKPDM No. 020 Tahun 2026 - Kurikulum Merdeka")
 
 # FUNGSI PEMPROSES FORMAT TEKS KE WORD (MARKDOWN TO DOCX)
 def add_formatted_runs(paragraph, text, base_bold=False, font_size=10.5):
@@ -107,9 +107,10 @@ st.sidebar.info("""
 - 1 JP = 30 Menit
 - Strategi Deep Learning: Mindful, Meaningful, Joyful
 - Pendekatan Ramah Asrama / Non-Gadget (Unplugged)
+- Acuan: BSKAP 046/H/KR/2025 & Kepka BKPDM No. 020 Tahun 2026
 """)
 
-# DATABASE REKOMENDASI TOPIK (BSKAP 046/H/KR/2025)
+# DATABASE REKOMENDASI TOPIK BERDASARKAN CP TERBARU
 REKOMENDASI_TOPIK = {
     "Berpikir Komputasional": [
         "Penerapan BK untuk Pemecahan Masalah Sehari-hari Santri di Asrama",
@@ -152,10 +153,10 @@ col1, col2 = st.columns(2)
 
 with col1:
     nama_guru = st.text_input("Nama Guru Penyusun:", value="Muhammad Irfa'udin Aulia, S.Kom., Gr.")
-    mapel = st.selectbox("Mata Pelajaran", ["Informatika", "IPA", "Matematika", "Bahasa Indonesia", "Pendidikan Pancasila"])
+    mapel = st.selectbox("Mata Pelajaran", ["Informatika", "IPA", "Matematika", "Bahasa Indonesia", "Pendidikan Pancasila", "Pendidikan Agama Islam dan Budi Pekerti"])
     kelas = st.selectbox("Kelas (Fase D)", ["Kelas 7", "Kelas 8", "Kelas 9"])
     semester = st.selectbox("Semester", ["Ganjil", "Genap"])
-    elemen_cp = st.selectbox("Elemen CP (Informatika)", list(REKOMENDASI_TOPIK.keys()))
+    elemen_cp = st.selectbox("Elemen CP", list(REKOMENDASI_TOPIK.keys()))
     
     pilihan_topik = st.selectbox("💡 Pilih Rekomendasi Topik/Materi (Sesuai CP Terbaru):", REKOMENDASI_TOPIK[elemen_cp])
     if pilihan_topik == "Lainnya (Ketik Manual)":
@@ -180,7 +181,7 @@ if st.button("🚀 Buat Modul Ajar Sesuai Templat", type="primary"):
         total_jp = jumlah_pertemuan * jp_per_pertemuan
         total_menit = jp_per_pertemuan * 30
         
-        # PROMPT PERSIS TEMPLAT
+        # PROMPT PERSIS TEMPLAT BERDASARKAN BSKAP 046/2025 & BKPDM 020/2026
         prompt = f"""
         Anda adalah konsultan kurikulum Kurikulum Merdeka Kemendikdasmen Indonesia.
         Buatkan Modul Ajar Pembelajaran Mendalam (Deep Learning) secara SANGAT LENGKAP DAN DETAIL dengan FORMAT WAKTU DAN STRUKTUR PERSIS SESUAI TEMPLAT DOKUMEN BERIKUT.
@@ -189,10 +190,10 @@ if st.button("🚀 Buat Modul Ajar Sesuai Templat", type="primary"):
         - Nama Sekolah: SMP Tri Sukses Boarding School Kota Jambi
         - Nama Penyusun: {nama_guru}
         - Mata Pelajaran: {mapel}
-        - Fase / Kelas / Semester: Fase D / {kelas} / {semester}
+        - Fase / Kelas / Semester: D / {kelas} / {semester}
         - Alokasi Waktu: {total_jp} Jam Pelajaran ({jumlah_pertemuan} pertemuan x {jp_per_pertemuan} JP)
         - Tahun Pelajaran: {tahun_ajaran}
-        - Elemen CP: {elemen_cp} (Berdasarkan BSKAP 046/H/KR/2025)
+        - Elemen CP: {elemen_cp} (Berdasarkan Keputusan BSKAP No. 046/H/KR/2025 & Kepka BKPDM No. 020 Tahun 2026)
         - Topik / Bab: {topik_final}
         - Pendekatan: {pendekatan}
         - Aturan Durasi: 1 JP = 30 Menit (Setiap pertemuan = {total_menit} Menit).
@@ -226,7 +227,7 @@ if st.button("🚀 Buat Modul Ajar Sesuai Templat", type="primary"):
         - Komunikasi: ...
 
         DESAIN PEMBELAJARAN
-        A. Capaian Pembelajaran (CP) Nomor : BSKAP 046/H/KR/2025
+        A. Capaian Pembelajaran (CP) Nomor : BSKAP No. 046/H/KR/2025 jo. Kepka BKPDM No. 020 Tahun 2026
         Pada akhir fase D, peserta didik diharapkan mampu:
         - Pengetahuan: ...
         - Keterampilan: ...
@@ -283,7 +284,7 @@ if st.button("🚀 Buat Modul Ajar Sesuai Templat", type="primary"):
         response_text = ""
         last_err = ""
 
-        with st.spinner("AI sedang menyusun Modul Ajar Sesuai Format Templat Resmi... Mohon tunggu sebentar."):
+        with st.spinner("AI sedang menyusun Modul Ajar Sesuai Regulasi Terbaru... Mohon tunggu sebentar."):
             for key in api_keys:
                 if success:
                     break
@@ -309,7 +310,7 @@ if st.button("🚀 Buat Modul Ajar Sesuai Templat", type="primary"):
                     continue
 
         if success:
-            st.success("✨ Modul Ajar Berhasil Dibuat Sesuai Format Templat!")
+            st.success("✨ Modul Ajar Berhasil Dibuat Sesuai Format Templat & Regulasi Terbaru!")
             st.markdown("---")
             st.markdown(response_text)
             st.markdown("---")
